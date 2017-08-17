@@ -1,6 +1,6 @@
 <img src="/static/assets/images/screenshot.png" height="512"/>
 
-**Try it online**, visit: [http://www.zsondre.hu/wd/](http://www.zsondre.hu/wd/)
+**Try it online**, visit: <a href="http://www.zsondre.hu/wd/" target="_blank">http://www.zsondre.hu/wd/</a>
 
 # About wedding-run
 - This platform game was originally made for our wedding website. To be honest it's quite an addictive game. The player who scored the most, actually got a small present at the wedding :) His score was 90472 which is insane :)
