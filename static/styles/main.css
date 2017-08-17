@@ -1,0 +1,29 @@
+@font-face {
+    font-family: 'arcade';
+    src: url('arcadepix_plus-webfont.woff2') format('woff2'),
+         url('arcadepix_plus-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+html {
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+  padding: 0px;
+}
+
+body {
+  height: inherit;
+  width: inherit;
+  margin: 0px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.fontloader {
+  font-family: 'arcade';
+  font-size: 0;
+}
