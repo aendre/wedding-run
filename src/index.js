@@ -1,3 +1,6 @@
+import _ from 'lodash';
+window._ = _;
+
 import Preload from 'states/Preload';
 import MainMenu from 'states/MainMenu';
 import Credits from 'states/Credits';
