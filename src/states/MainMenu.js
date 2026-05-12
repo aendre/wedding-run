@@ -47,60 +47,19 @@ class MainMenu extends Phaser.State {
 					'label'    : 'Groom'
 					,'callback': _.bind(function(){
 						this.game.Settings.characterType = 'groom';
-						this.chooseName();
+						this.startGame();
 					},this)
 	    		}
 	    		,{
 					'label'    : 'Bride'
 					,'callback': _.bind(function(){
 						this.game.Settings.characterType = 'bride';
-						this.chooseName();
+						this.startGame();
 					},this)
 	    		}
     		]
     	};    	
     	this.playerMenu = new Menu(playerMenuOptions,this.game);
-    }
-
-    chooseName() {
-    	// Destroy prevoius menu
-    	this.playerMenu.destroy();
-
-    	let inputWidth = 200;
-    	var input = this.game.add.inputField(this.game.width/2-inputWidth/2, 250,{
-		    font: '30px arcade',
-		    fill: '#212121',
-		    width: inputWidth,
-		    padding: 10,
-		    borderWidth: 3,
-		    borderColor: '#0b77a5',
-		    borderRadius: 4,
-		    placeHolder: 'Type your name',
-		});
-		input.setText(this.game.Settings.playerName);
-		input.startFocus();
-
-		var inputLabel = this.game.add.text(this.game.width/2, 230,'- Enter your name and hit ENTER -');
-	    inputLabel.anchor.set(0.5);
-	    inputLabel.align = 'center';
-	    inputLabel.font = 'arcade';
-	    inputLabel.fontSize = 25;
-	    inputLabel.fill = '#FFFFFF';
-
-	    var nameDescription = this.game.add.text(this.game.width/2, 340,'this is optional');
-	    nameDescription.anchor.set(0.5);
-	    nameDescription.align = 'center';
-	    nameDescription.font = 'arcade';
-	    nameDescription.fontSize = 25;
-	    nameDescription.fill = '#504c39';
-
-	    // Register 
-	    this.game.input.keyboard.onUpCallback = _.bind(function(e){
-			if(e.keyCode == Phaser.Keyboard.ENTER) {
-	    		this.game.Settings.playerName = input.value;
-				this.startGame();
-			}
-		},this);
     }
 
     showCredits() {

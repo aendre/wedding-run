@@ -22,7 +22,7 @@ class Player {
 	    this.character.body.collideWorldBounds = true;
 
 	    // Set a narrower bounding box for the character than the image itself
-		let characterImage = this.game.cache.getImage(characterSprite);
+		  let characterImage = this.game.cache.getImage(characterSprite);
 	    this.character.body.setSize(25, characterImage.height-5, 4, 5);
 
 	    //  Our two animations, walking left and right.
@@ -34,6 +34,8 @@ class Player {
 	    	,'damage' : this.game.add.audio(this.isWoman() ? 'damage-woman' : 'damage-man',this.game.Settings.effectVolume)
 	    	,'coin' : this.game.add.audio('coin',this.game.Settings.effectVolume)
 	    };
+
+	    this.isStunned = false;
 
 	    return this;
 	}
@@ -78,8 +80,21 @@ class Player {
 		}, this);
 	}
 
+	takeDamage() {
+		this.sounds.damage.play();
+
+		this.character.tint = 0xff0000;
+		this.isStunned = true;
+		this.character.body.velocity.x = -200;
+		this.character.body.velocity.y = -150;
+
+		this.game.time.events.add(400, function() {
+			this.character.tint = 0xffffff;
+			this.isStunned = false;
+		}, this);
+	}
+
 	die() {
-		// Play sound
 		this.sounds.damage.play();
 		 //  Stand still
         this.character.animations.stop();
@@ -87,6 +102,8 @@ class Player {
 	}
 
 	update(hitPlatform) {
+		if (this.isStunned) return;
+
  		var cursors = this.game.input.keyboard.createCursorKeys();
 
  		 //  Reset the players velocity (movement)

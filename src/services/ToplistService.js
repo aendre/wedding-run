@@ -10,21 +10,23 @@ class ToplistService {
 
  		/**
  		 *
- 		 *   Save your score using a webservice, for example
-		 * 
-		 *   $.post(Settings.urls.saveScore,{
- 		 *  	'playerName' : playerName
- 		 *  	,'score' : score
- 		 *   }).done(function(data) {
- 		 *   	console.log('data was saved')
-		 *   });
+ 		 *   Save your score using a webservice, for example:
 		 *
-		 **/ 		
+		 *   fetch(Settings.urls.saveScore, {
+		 *     method: 'POST',
+		 *     headers: { 'Content-Type': 'application/json' },
+		 *     body: JSON.stringify({ playerName, score })
+		 *   })
+		 *     .then(res => res.json())
+		 *     .then(data => console.log('data was saved', data));
+		 *
+		 **/
 	}
 
 	/**
-	 * Call your webservice to get the top10 player
-	 * Something like this: return $.get(Settings.urls.getTop10);
+	 * Call your webservice to get the top 10 players.
+	 * Something like this:
+	 *   return fetch(Settings.urls.getTop10).then(res => res.json());
 	 */
 	getTop10() {
  		return [

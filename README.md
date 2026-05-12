@@ -22,7 +22,7 @@
 ## Technology stack
 - npm, gulp
 - ES6, babelify, browserify
-- Phaser, jquery, lodash 
+- Phaser, lodash
 
 # How to build and run the game
 

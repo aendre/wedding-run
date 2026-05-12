@@ -3,6 +3,7 @@ import Platform from 'objects/Platform';
 import Ground from 'objects/Ground';
 import Background from 'objects/Background';
 import Score from 'objects/Score';
+import Lives from 'objects/Lives';
 import Coins from 'objects/Coins';
 import Enemies from 'objects/Enemy';
 import SoundControl from 'objects/SoundControl';
@@ -24,6 +25,7 @@ class Main extends Phaser.State {
 		this.coinsCollected = 0;
 		this.bunniesKilled = 0;
 		this.bountyPoints = 0;
+		this.nrOfLives = 5;
 
 		// Game over flag
 		this.isGameOver = false;
@@ -33,6 +35,9 @@ class Main extends Phaser.State {
 
 		// Add scoreboard
 		this.score = new Score(this.game);
+
+		// Add lives display
+		this.lives = new Lives(this.game, this.nrOfLives);
 		
 		// Add ground
 		this.ground = new Ground(this.game);
@@ -81,8 +86,20 @@ class Main extends Phaser.State {
 		},this);
 	}
 
-	hitWorldBounds() {
+	hitWorldBounds(sprite, up, down, left, right) {
+		if (right) {
+			this.applyDamage();
+			return;
+		}
 		this.gameOver();
+	}
+
+	applyDamage() {
+		this.player.takeDamage();
+		let remaining = this.lives.loseLife();
+		if (remaining < 1) {
+			this.gameOver();
+		}
 	}
 
 	gameOver() {
@@ -171,7 +188,8 @@ class Main extends Phaser.State {
 			this.bountyPoints += velocity;
 		}
 		else {
-			this.gameOver();
+			enemy.kill();
+			this.applyDamage();
 		}
 
 	}

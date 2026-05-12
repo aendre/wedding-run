@@ -39,8 +39,6 @@ class Preload extends Phaser.State {
 	}
 
 	create() {
-		// Activate input plugin
-		this.game.plugins.add(PhaserInput.Plugin);		
 		this.game.state.start("MainMenu");
 	}
 
