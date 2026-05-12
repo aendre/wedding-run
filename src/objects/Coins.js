@@ -1,92 +1,99 @@
-class Coins {
+import Phaser from 'phaser';
+import Settings from '../settings.js';
+import { killSprite, resetSprite, killIfOutOfBounds } from '../utils/pool.js';
 
-	constructor(game,platform){
-		this.game = game;
-		this.platform = platform;
-		this.enableSpawning = true;
-		this.platformMap = {};
+export default class Coins {
 
-		// Create a group for the platforms
-		this.coins = this.game.add.group();
-	    this.coins.enableBody = true;
-	    this.coins.createMultiple(20, 'coin');
-	    
-	    this.timer = game.time.events.loop(this.game.Settings.timers.coinSpawn, this.addCoin, this);
-	    return this;
-	}
+  constructor(scene, platform) {
+    this.scene = scene;
+    this.platform = platform;
+    this.enableSpawning = true;
+    this.platformMap = {};
 
-	getObject() {
- 		return this.coins;
-	}
+    this.coins = scene.physics.add.group({
+      allowGravity: false,
+      immovable: true
+    });
 
-	disableSpawning() {
-		this.enableSpawning = false;
-	}
+    for (let i = 0; i < 20; i++) {
+      const coin = this.coins.create(0, 0, 'coin');
+      coin.setOrigin(0, 0);
+      coin.setActive(false).setVisible(false);
+      coin.body.stop();
+      coin.body.enable = false;
+    }
 
-	removeCoin(coin) {
-		this.platformMap[coin.platformId] = false;
-		coin.kill();
-	}
+    if (!scene.anims.exists('coin-spin')) {
+      scene.anims.create({
+        key: 'coin-spin',
+        frames: scene.anims.generateFrameNumbers('coin', { start: 0, end: 7 }),
+        frameRate: 10,
+        repeat: -1
+      });
+    }
 
-	addToPlatformMap(platformId) {
-		this.platformMap[platformId] = true;
-	}
+    this.timer = scene.time.addEvent({
+      delay: Settings.timers.coinSpawn,
+      callback: this.addCoin,
+      callbackScope: this,
+      loop: true
+    });
+  }
 
-	setCoinPosition(coin) {
-		 // Get the list of platforms on the screen
-	 	let platforms = this.platform.getOnScreenPlatforms();
-	 	
-	 	// By default render the coin randomly on the ground
-	 	let x = this.game.rnd.between(0,this.game.width);
-	 	let y = this.game.height - this.game.Settings.sizes.groundHeight - 40;
-	 	
-	 	if(platforms.length) {
-			// Gets a random element from collection 
-	 		let platformData = _.sampleSize(platforms)[0];
+  getObject() {
+    return this.coins;
+  }
 
-	 		// If we don't have a coin on this platform 
-	 		if (!this.platformMap[platformData.id]) {
-			    this.addToPlatformMap(platformData.id);
-		 		coin.platformId = platformData.id;
+  disableSpawning() {
+    this.enableSpawning = false;
+  }
 
-		 		// Calculate the position of the coin on the platform
-			 	x = platformData.x + platformData.width/2 - 10;
-		    	y = platformData.y - 40;	 			
-	 		}		
-	 	}
-		
-		coin.reset(x, y);
-	}
+  removeCoin(coin) {
+    this.platformMap[coin.platformId] = false;
+    killSprite(coin);
+  }
 
-	addCoin(){
- 		// If spawning is disabled exit
- 		if (!this.enableSpawning) {
- 			return;
- 		}
+  addToPlatformMap(platformId) {
+    this.platformMap[platformId] = true;
+  }
 
- 		// Get a coin that is not currently on screen
-	    let coin = this.coins.getFirstDead();
-	   
-	 	if (coin){
-	 		
-	 		this.setCoinPosition(coin);		
-	    	
-	    	coin.animations.add('spin', [0, 1, 2, 3, 4, 5, 6, 7], 10, true);
-	    	coin.animations.play('spin');
-	    	coin.body.immovable = true;
-	    	coin.body.allowGravity = false;
-	    	coin.body.checkCollision = false;
-	    	coin.body.velocity.x = -this.game.Settings.physics.platformSpeed;
- 
-		    //When the coin leaves the screen, kill it
-		    coin.checkWorldBounds = true;
-		    coin.outOfBoundsKill = true;
-	 	}
-	}
+  setCoinPosition(coin) {
+    const platforms = this.platform.getOnScreenPlatforms();
 
-	update() {
- 		
-	}
+    let x = Phaser.Math.Between(0, this.scene.scale.width);
+    let y = this.scene.scale.height - Settings.sizes.groundHeight - 40;
+
+    if (platforms.length) {
+      const platformData = platforms[Phaser.Math.Between(0, platforms.length - 1)];
+
+      if (!this.platformMap[platformData.id]) {
+        this.addToPlatformMap(platformData.id);
+        coin.platformId = platformData.id;
+        x = platformData.x + platformData.width / 2 - 10;
+        y = platformData.y - 40;
+      }
+    }
+
+    coin.setOrigin(0, 0);
+    resetSprite(coin, x, y);
+  }
+
+  addCoin() {
+    if (!this.enableSpawning) return;
+
+    const coin = this.coins.getFirstDead(false);
+    if (!coin) return;
+
+    this.setCoinPosition(coin);
+    coin.anims.play('coin-spin', true);
+    coin.body.setImmovable(true);
+    coin.body.setAllowGravity(false);
+    coin.body.setVelocityX(-Settings.physics.platformSpeed);
+  }
+
+  update() {
+    this.coins.getChildren().forEach(coin => {
+      killIfOutOfBounds(coin);
+    });
+  }
 }
-
-export default Coins;

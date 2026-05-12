@@ -37,7 +37,7 @@ export default {
 		// New platforms appear in every <platformSpawn> ms
 		,'platformSpawn' : 3000
 		// New rabbits are spawn afer <enemySpawn> ms
-		,'enemySpawn' : 2000
+		,'enemySpawn' : 3000
 		// Cloud  timer
 		,'cloudSpawn' : 4000
 		// Check for game states in every second
@@ -53,7 +53,7 @@ export default {
 		// Default player gravity
 		,'playerGravity'      : 400
 		// Some extra gravity is applied when the down arrow is pressed
-		,'extraGravity'       : 600
+		,'extraGravity'       : 700
 		// How high the player will jump?
 		,'playerJumpVelocity' : 400
 		// Speed of the player when running forward

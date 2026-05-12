@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       objects: path.resolve(__dirname, 'src/objects'),
-      states: path.resolve(__dirname, 'src/states'),
+      scenes: path.resolve(__dirname, 'src/scenes'),
       services: path.resolve(__dirname, 'src/services'),
       animations: path.resolve(__dirname, 'src/animations'),
     },
@@ -17,8 +17,5 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     emptyOutDir: true,
-  },
-  optimizeDeps: {
-    exclude: ['phaser'],
   },
 });

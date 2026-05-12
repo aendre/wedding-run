@@ -1,141 +1,105 @@
-class Platform {
+import Phaser from 'phaser';
+import Settings from '../settings.js';
+import { killSprite, resetSprite, killIfOutOfBounds } from '../utils/pool.js';
 
-	constructor(game){
-		this.game = game;
+let platformIdCounter = 0;
 
-		this.groundHeight = this.game.Settings.sizes.groundHeight;
-		this.lastFloor = 0;
-		this.floorHeight = 95;
-		this.playerWasOnThePlatforms = false;
-		this.playerFallDownToGround = false;
-		
-		// Create a group for the platforms
-		this.platforms = this.game.add.group();
-	    this.platforms.enableBody = true;
-	    
-	    // Add a few random platforms to the group
-	    for(var i=0; i<25; i++) {
-	       	let platformVersion = 'platform-' + this.game.rnd.between(1,3);
-	    	let platform = this.platforms.create(0, 0, platformVersion, undefined, false);
-	    	platform.body.immovable = true;
-	    	platform.body.allowGravity = false;	    	
-	    }
+export default class Platform {
 
-	    this.timer = game.time.events.loop(this.game.Settings.timers.platformSpawn, this.addPlatform, this);
-	    return this;
-	}
+  constructor(scene) {
+    this.scene = scene;
+    this.groundHeight = Settings.sizes.groundHeight;
+    this.lastFloor = 0;
+    this.floorHeight = 95;
+    this.playerWasOnThePlatforms = false;
+    this.playerFallDownToGround = false;
 
-	getObject() {
- 		return this.platforms;
-	}
+    this.platforms = scene.physics.add.group({
+      allowGravity: false,
+      immovable: true
+    });
 
-	getOnScreenPlatforms() {
-		let positions = [];
-		this.platforms.forEachAlive(function(platform){
-			positions.push({
-				x : platform.x
-				,y : platform.y
-				,id : platform.id
-				,width : platform.width
-				,height : platform.height
-			})
-		});
+    for (let i = 0; i < 25; i++) {
+      const key = `platform-${Phaser.Math.Between(1, 3)}`;
+      const platform = this.platforms.create(0, 0, key);
+      platform.setOrigin(0, 0);
+      platform.setActive(false).setVisible(false);
+      platform.body.stop();
+      platform.body.enable = false;
+    }
 
-		return positions;
-	}
+    this.timer = scene.time.addEvent({
+      delay: Settings.timers.platformSpawn,
+      callback: this.addPlatform,
+      callbackScope: this,
+      loop: true
+    });
+  }
 
-	addPlatform(floor,initX){
- 		// Get a platform that is not currently on screen
-	    let platform = this.platforms.getFirstDead();
+  getObject() {
+    return this.platforms;
+  }
 
-	 	if (platform){
-	 		let isFloorDefined = typeof floor === 'undefined' ? false : true;
+  getOnScreenPlatforms() {
+    const positions = [];
+    this.platforms.getChildren().forEach(platform => {
+      if (platform.active) {
+        positions.push({
+          x: platform.x,
+          y: platform.y,
+          id: platform.platformId,
+          width: platform.width,
+          height: platform.height
+        });
+      }
+    });
+    return positions;
+  }
 
-	 		this.lastFloor = isFloorDefined ? floor : this.getNextFloor();
+  addPlatform(floor, initX) {
+    const platform = this.platforms.getFirstDead(false);
+    if (!platform) return;
 
-	 		// Initial position of the platform is outside of the game world
-		 	let x = typeof initX === 'undefined' ? this.game.width : initX;
-	    	let y = this.game.world.height - this.groundHeight - this.lastFloor * this.floorHeight;
+    const isFloorDefined = typeof floor !== 'undefined' && typeof floor === 'number';
+    this.lastFloor = isFloorDefined ? floor : this.getNextFloor();
 
-		    //Reset it to the specified coordinates
-		    platform.reset(x, y);
-		    platform.body.velocity.x = -this.game.Settings.physics.platformSpeed;
-		 
-		    //When the platform leaves the screen, kill it
-		    platform.checkWorldBounds = true;
-		    platform.outOfBoundsKill = true;
+    const x = typeof initX === 'undefined' ? this.scene.scale.width : initX;
+    const y = this.scene.scale.height - this.groundHeight - this.lastFloor * this.floorHeight;
 
-		    // Generate a unique platform ID for each new 
-		    platform.id = _.uniqueId('platform-');
-	 	}
-	}
+    platform.setOrigin(0, 0);
+    resetSprite(platform, x, y);
+    platform.body.setVelocityX(-Settings.physics.platformSpeed);
+    platform.body.setImmovable(true);
+    platform.body.setAllowGravity(false);
+    platform.platformId = `platform-${platformIdCounter++}`;
+  }
 
-	/** 
-	 *	The game has 4 floors: ground, 1st, 2nd and 3rd floor.
-	 *	This algorithm ensures that platforms are generated in a way,
-	 *	that every platform is reachable.
-	 */
-	getNextFloor() {
-		/**
-		 *	Case 0 - If the player is on the ground, always render the next platform
-		 *	to the 1st floor, so that the player can reach the upper platforms
-		 **/
-		if (this.playerFallDownToGround && this.lastFloor>1) {
-			this.resetPlayerState();
-			return 1;
-		}
+  getNextFloor() {
+    if (this.playerFallDownToGround && this.lastFloor > 1) {
+      this.resetPlayerState();
+      return 1;
+    }
+    if (this.lastFloor === 0) return 1;
+    if (this.lastFloor === 1) return Math.random() > 0.3 ? 2 : 1;
+    if (this.lastFloor === 2) return Math.random() > 0.5 ? 2 : 3;
+    return Phaser.Math.Between(1, 3);
+  }
 
-		/**
-		 *	Case 1 - no platforms were added
-		 *  
-		 *	When the game starts, no platforms were added,
-		 *	so we add the next platform to the 1st floor
-		 **/
-		if (this.lastFloor==0) {
-			return 1;
-		}
+  resetPlayerState() {
+    this.playerWasOnThePlatforms = false;
+    this.playerFallDownToGround = false;
+  }
 
-		/**
-		 *	Case 2 - the last platform is at the 1st floor
-		 *  
-		 *	70% chance, that the next platform is added to the upper level
-		 *	30% chance, that we add the next platform to the same level
-		 **/
-		if (this.lastFloor==1) {
-			return Math.random() > 0.3 ? 2 : 1;
-		}
+  update(hitPlatform, hitGround) {
+    if (!this.playerWasOnThePlatforms && hitPlatform) {
+      this.playerWasOnThePlatforms = true;
+    }
+    if (this.playerWasOnThePlatforms && hitGround) {
+      this.playerFallDownToGround = true;
+    }
 
-		/**
-		 *	Case 3 - the last platform was added to 2nd floor
-		 *
-		 **/
-		if (this.lastFloor==2) {
-			return Math.random() > 0.5 ? 2 : 3;
-		}
-		
-		/**
-		 *	Case 4 - last platform was added to the highest position
-		 * 		 
-		 *	The new platform can be added to any of the floors
-		 **/		
-		return this.game.rnd.between(1,3);
-	}
-
-	resetPlayerState() {
-		this.playerWasOnThePlatforms = false;
-		this.playerFallDownToGround = false;
-	}
-
-	update(hitPlatform,hitGround) {
-		if (this.playerWasOnThePlatforms===false && hitPlatform) {
-			this.playerWasOnThePlatforms = true;
-		}
-
-		if (this.playerWasOnThePlatforms && hitGround) {
-			this.playerFallDownToGround = true;
-		}		
-	}
-
+    this.platforms.getChildren().forEach(platform => {
+      killIfOutOfBounds(platform);
+    });
+  }
 }
-
-export default Platform;

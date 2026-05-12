@@ -1,76 +1,80 @@
-class Background {
+import Phaser from 'phaser';
+import Settings from '../settings.js';
+import { killSprite, resetSprite, killIfOutOfBounds } from '../utils/pool.js';
 
-	constructor(game){
-		this.game = game;
+export default class Background {
 
-		// Set speeds
-		this.mountainSpeed = 0.2;
- 		this.bgHillSpeed = 0.4;
- 		this.hillsSpeed = 0.6;
-		
-		// Set the game background colour
-		this.game.stage.backgroundColor = '#ccf2ff';
-		
-		// Set a background image
-		this.bg = this.game.add.tileSprite(0, 0, this.game.width, this.game.height, 'background');
-		
-		// Add mountains
-		this.mountains = this.game.add.tileSprite(0, this.game.height-this.game.cache.getImage('background-mountains').height-64, this.game.width, this.game.world.height, 'background-mountains');
+  constructor(scene) {
+    this.scene = scene;
 
-		// Add hills in the background
-		this.bgHills = this.game.add.tileSprite(0, this.game.height-this.game.cache.getImage('background-back-hills').height+30, this.game.width, this.game.world.height, 'background-back-hills');
+    this.mountainSpeed = 0.2;
+    this.bgHillSpeed = 0.4;
+    this.hillsSpeed = 0.6;
 
-		// Add hills
-		this.hills = this.game.add.tileSprite(0, this.game.height-this.game.cache.getImage('background-hills').height+30, this.game.width, this.game.world.height, 'background-hills');
+    const w = scene.scale.width;
+    const h = scene.scale.height;
 
+    scene.cameras.main.setBackgroundColor('#ccf2ff');
 
-		// Create a random cloud group
-		this.clouds = this.game.add.group();
-	    this.clouds.enableBody = true;
-	    this.clouds.createMultiple(2, 'cloud-1');
-	    this.clouds.createMultiple(2, 'cloud-2');
-	    this.clouds.createMultiple(2, 'cloud-1');
-	    this.clouds.createMultiple(2, 'cloud-2');
+    this.bg = scene.add.tileSprite(0, 0, w, h, 'background').setOrigin(0, 0);
 
-	    this.initializeClouds();
-	    this.timer = game.time.events.loop(this.game.Settings.timers.cloudSpawn, this.createCloud, this);
+    const mountainsH = scene.textures.get('background-mountains').getSourceImage().height;
+    this.mountains = scene.add.tileSprite(0, h - mountainsH - 64, w, mountainsH, 'background-mountains').setOrigin(0, 0);
 
-	    return this;
-	}
+    const bgHillsH = scene.textures.get('background-back-hills').getSourceImage().height;
+    this.bgHills = scene.add.tileSprite(0, h - bgHillsH + 30, w, bgHillsH, 'background-back-hills').setOrigin(0, 0);
 
-	initializeClouds() {
-		// By default add a few clouds
-		for (let i=0; i<3; i++) {
-			this.createCloud(this.game.rnd.between(0,this.game.width));
-		}
-	}
+    const hillsH = scene.textures.get('background-hills').getSourceImage().height;
+    this.hills = scene.add.tileSprite(0, h - hillsH + 30, w, hillsH, 'background-hills').setOrigin(0, 0);
 
-	createCloud(initX) {
-	    // Get a cloud that is not currently on screen
-	    let cloud = this.clouds.getFirstDead();
+    this.clouds = scene.physics.add.group({
+      allowGravity: false
+    });
 
-	 	if (cloud){
-	 		// Initial position of the cloud is outside of the game world
-		 	let x = typeof initX ==='undefined' ? this.game.width : initX;
-		 	// Generate a new position for the cloud
-		 	let y = this.game.rnd.between(20,100);
+    const cloudKeys = ['cloud-1', 'cloud-2', 'cloud-1', 'cloud-2', 'cloud-1', 'cloud-2', 'cloud-1', 'cloud-2'];
+    for (const key of cloudKeys) {
+      const cloud = this.clouds.create(0, 0, key);
+      cloud.setOrigin(0, 0);
+      cloud.setActive(false).setVisible(false);
+      cloud.body.stop();
+      cloud.body.enable = false;
+    }
 
-		    //Reset it to the specified coordinates
-		    cloud.reset(x, y);
-		    cloud.body.velocity.x = this.game.rnd.between(-30,-100);
-		    cloud.body.allowGravity = false;
-		 
-		    //When the cloud leaves the screen, kill it
-		    cloud.checkWorldBounds = true;
-		    cloud.outOfBoundsKill = true;
-	 	}
-	}
+    this.initializeClouds();
+    this.timer = scene.time.addEvent({
+      delay: Settings.timers.cloudSpawn,
+      callback: this.createCloud,
+      callbackScope: this,
+      loop: true
+    });
+  }
 
-	update() {
- 		this.mountains.tilePosition.x -= this.mountainSpeed;
- 		this.bgHills.tilePosition.x -= this.bgHillSpeed;
- 		this.hills.tilePosition.x -= this.hillsSpeed;
-	}
+  initializeClouds() {
+    for (let i = 0; i < 3; i++) {
+      this.createCloud(Phaser.Math.Between(0, this.scene.scale.width));
+    }
+  }
+
+  createCloud(initX) {
+    const cloud = this.clouds.getFirstDead(false);
+    if (!cloud) return;
+
+    const x = typeof initX === 'undefined' ? this.scene.scale.width : initX;
+    const y = Phaser.Math.Between(20, 100);
+
+    cloud.setOrigin(0, 0);
+    resetSprite(cloud, x, y);
+    cloud.body.setVelocityX(Phaser.Math.Between(-100, -30));
+    cloud.body.setAllowGravity(false);
+  }
+
+  update() {
+    this.mountains.tilePositionX += this.mountainSpeed;
+    this.bgHills.tilePositionX += this.bgHillSpeed;
+    this.hills.tilePositionX += this.hillsSpeed;
+
+    this.clouds.getChildren().forEach(cloud => {
+      killIfOutOfBounds(cloud);
+    });
+  }
 }
-
-export default Background;

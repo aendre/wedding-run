@@ -1,28 +1,30 @@
-class SoundControl {
+export default class SoundControl {
 
-	constructor(game){
-		this.game = game;
+  constructor(scene) {
+    this.scene = scene;
 
-		// The numbers given in parameters are the indexes of the frames, in this order: over, out, down
-		let defaultFrame = this.game.sound.mute ? 1 : 0;
-		this.button = this.game.add.button(20, 20, 'sound-control', this.actionOnClick,this,defaultFrame,defaultFrame,defaultFrame);
-	    return this;
-	}
+    const defaultFrame = scene.sound.mute ? 1 : 0;
+    this.button = scene.add.sprite(20, 20, 'sound-control', defaultFrame)
+      .setOrigin(0, 0)
+      .setInteractive()
+      .on('pointerdown', () => this.actionOnClick());
+  }
 
-	actionOnClick() {
-		this.game.sound.mute ? this.unMute() : this.mute();
-	}
+  actionOnClick() {
+    if (this.scene.sound.mute) {
+      this.unMute();
+    } else {
+      this.mute();
+    }
+  }
 
-	mute() {
-		this.game.sound.mute = true;
-		this.button.setFrames(1, 1, 1);
-	}
+  mute() {
+    this.scene.sound.mute = true;
+    this.button.setFrame(1);
+  }
 
-	unMute() {
-		this.game.sound.mute = false;
-		this.button.setFrames(0, 0, 0);
-	}
-
+  unMute() {
+    this.scene.sound.mute = false;
+    this.button.setFrame(0);
+  }
 }
-
-export default SoundControl;

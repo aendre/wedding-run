@@ -1,77 +1,68 @@
-class Ground {
+import Settings from '../settings.js';
+import { killSprite, resetSprite, killIfOutOfBounds } from '../utils/pool.js';
 
-	constructor(game){
-		this.game = game;
+export default class Ground {
 
-		// Store the size if the ground tile
-		this.tileSize = this.game.Settings.sizes.groundHeight;
-		
-		// Create a group for the platforms
-		this.ground = this.game.add.group();
-	    this.ground.enableBody = true;
-	    this.ground.createMultiple(16, 'ground');
+  constructor(scene) {
+    this.scene = scene;
+    this.tileSize = Settings.sizes.groundHeight;
 
-	    // Store the tile that was added last
-	    this.lastAddedTile = null;
+    this.ground = scene.physics.add.group({
+      allowGravity: false,
+      immovable: true
+    });
 
-	    // Add tiles from the left side of the screen until it fills the width of the game
-	    this.createFullGround();
+    for (let i = 0; i < 16; i++) {
+      const tile = this.ground.create(0, 0, 'ground');
+      tile.setOrigin(0, 0);
+      tile.setActive(false).setVisible(false);
+      tile.body.stop();
+      tile.body.enable = false;
+    }
 
-	    // Store how many tiles were added
-	    this.tileCount = 0;
+    this.lastAddedTile = null;
+    this.createFullGround();
+    this.tileCount = 0;
+  }
 
-	    return this;
-	}
+  getObject() {
+    return this.ground;
+  }
 
-	getObject() {
- 		return this.ground;
-	}
+  createFullGround() {
+    for (let i = 0; i < this.scene.scale.width; i += this.tileSize) {
+      this.addTile(i);
+    }
+  }
 
-	// Create a full ground
-	createFullGround() {
-		for (let i=0; i<this.game.width; i=i+this.tileSize) {
-			this.addTile(i);
-		}
-	}
+  addTile(initX) {
+    const tile = this.ground.getFirstDead(false);
+    if (!tile) return;
 
-	addTile(initX){
- 		// Get a cloud that is not currently on screen
-	    let tile = this.ground.getFirstDead();
+    const x = typeof initX === 'undefined' ? (this.scene.scale.width - 2) : initX;
+    const y = this.scene.scale.height - this.tileSize;
 
-	 	if (tile){
-		    // If no x cordinate is provided, render it just outside of the screen
-	        let x = typeof initX==='undefined' ? (this.game.width-2) : initX;
-	    	let y = this.game.world.height - this.tileSize;
+    tile.setOrigin(0, 0);
+    resetSprite(tile, x, y);
+    tile.body.setVelocityX(-Settings.physics.platformSpeed);
+    tile.body.setImmovable(true);
+    tile.body.setAllowGravity(false);
 
-		    //Reset it to the specified coordinates
-		    tile.reset(x, y);
-	    	tile.body.immovable = true;
-	    	tile.body.allowGravity = false;
-		    tile.body.velocity.x = -this.game.Settings.physics.platformSpeed;
+    this.lastAddedTile = tile;
+  }
 
-		    //When the tile leaves the screen, kill it
-		    tile.checkWorldBounds = true;
-		    tile.outOfBoundsKill = true;
+  distanceTravelled() {
+    return this.tileCount * this.tileSize;
+  }
 
-		    // Save the last added tile for later user
-		    this.lastAddedTile = tile;		    
-	 	}
-	}
+  update() {
+    if (this.lastAddedTile && this.lastAddedTile.x + this.tileSize < this.scene.scale.width) {
+      this.addTile();
+      this.tileCount++;
+    }
 
-	distanceTravelled() {
-		return this.tileCount*this.tileSize;
-	}
-
-	update() {
-		// If the last added tile is about to leave the edge of the game
-		if (this.lastAddedTile.x + this.tileSize < this.game.width) {
-			// Append a new tile
-			this.addTile();
-			// Increment tile counter (this will count in the scores)
-			this.tileCount++;
-		}		
-	}
-
+    this.ground.getChildren().forEach(tile => {
+      killIfOutOfBounds(tile);
+    });
+  }
 }
-
-export default Ground;

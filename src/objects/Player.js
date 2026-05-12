@@ -1,144 +1,135 @@
-class Player {
+import Phaser from 'phaser';
+import Settings from '../settings.js';
 
-	constructor(game){
-		this.game = game;
+export default class Player {
 
-		// The default character is the groom
-		let characterSprite = 'groomSprite';
+  constructor(scene) {
+    this.scene = scene;
 
-		if (this.isWoman()) {
-			characterSprite = 'brideSprite';
-		}
+    const characterSprite = this.isWoman() ? 'brideSprite' : 'groomSprite';
 
-		// The player and its settings
-	    this.character = this.game.add.sprite(this.game.width/2, this.game.height - 150, characterSprite);
+    this.character = scene.physics.add.sprite(
+      scene.scale.width / 2,
+      scene.scale.height - 150,
+      characterSprite
+    );
 
-	    //  We need to enable physics on the player
-	    this.game.physics.arcade.enable(this.character);
+    this.character.setBounce(0, Settings.physics.playerBounce);
+    this.character.body.setGravityY(Settings.physics.playerGravity);
 
-	    //  Player physics properties. Give the little guy a slight bounce.
-	    this.character.body.bounce.y = this.game.Settings.physics.playerBounce;
-	    this.character.body.gravity.y = this.game.Settings.physics.playerGravity;
-	    this.character.body.collideWorldBounds = true;
+    const img = scene.textures.get(characterSprite).getSourceImage();
+    this.character.body.setSize(25, img.height - 5, true);
+    this.character.body.setOffset(4, 5);
 
-	    // Set a narrower bounding box for the character than the image itself
-		  let characterImage = this.game.cache.getImage(characterSprite);
-	    this.character.body.setSize(25, characterImage.height-5, 4, 5);
+    this.character.anims.create({
+      key: 'left',
+      frames: scene.anims.generateFrameNumbers(characterSprite, { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1
+    });
 
-	    //  Our two animations, walking left and right.
-	    this.character.animations.add('left', [0, 1, 2, 3], 10, true);
-	    this.character.animations.add('right', [5, 6, 7, 8], 10, true);
+    this.character.anims.create({
+      key: 'right',
+      frames: scene.anims.generateFrameNumbers(characterSprite, { start: 5, end: 8 }),
+      frameRate: 10,
+      repeat: -1
+    });
 
-	    this.sounds = {
-	    	'jump' : this.game.add.audio('jump',this.game.Settings.effectVolume)
-	    	,'damage' : this.game.add.audio(this.isWoman() ? 'damage-woman' : 'damage-man',this.game.Settings.effectVolume)
-	    	,'coin' : this.game.add.audio('coin',this.game.Settings.effectVolume)
-	    };
+    this.sounds = {
+      jump: scene.sound.add('jump', { volume: Settings.effectVolume }),
+      damage: scene.sound.add(this.isWoman() ? 'damage-woman' : 'damage-man', { volume: Settings.effectVolume }),
+      coin: scene.sound.add('coin', { volume: Settings.effectVolume })
+    };
 
-	    this.isStunned = false;
+    this.isStunned = false;
+    this.cursors = scene.input.keyboard.createCursorKeys();
+  }
 
-	    return this;
-	}
+  getObject() {
+    return this.character;
+  }
 
-	getObject() {
- 		return this.character;
-	}
+  isMale() {
+    return Settings.characterType !== 'bride';
+  }
 
-	isMale() {
-		return this.game.Settings.characterType=='bride' ? false : true;
-	}
+  isWoman() {
+    return !this.isMale();
+  }
 
-	isWoman() {
-		return !this.isMale();
-	}
+  collectBounty(x, y, velocity) {
+    this.sounds.coin.play();
+    const score = velocity * Settings.score.enemy;
+    this.scorePoints(x, y, score);
+  }
 
-	collectBounty(x,y,velocity) {
-		this.sounds.coin.play();
-		let score = velocity * this.game.Settings.score.enemy;
-		this.scorePoints(x,y,score);
-	}
+  collectCoin(x, y) {
+    this.sounds.coin.play();
+    this.scorePoints(x, y, Settings.score.coin);
+  }
 
-	collectCoin(x,y) {
-		this.sounds.coin.play();
-		this.scorePoints(x,y,this.game.Settings.score.coin);
-	}
+  scorePoints(x, y, points) {
+    const text = this.scene.add.text(x, y, `+${Math.round(points)}`, {
+      fontFamily: 'arcade',
+      fontSize: '25px',
+      color: '#FFFFFF',
+      stroke: '#504c39',
+      strokeThickness: 2,
+      align: 'center'
+    }).setOrigin(0.5);
 
-	scorePoints(x,y,points) {
-		let text = this.game.add.text(x, y,'+'+points);
-		text.anchor.set(0.5);
-		text.align = 'center';
-		text.font = 'arcade';
-		text.fontSize = 25;
-		text.fill = '#FFFFFF';
-		text.stroke = '#504c39';
-		text.strokeThickness =  2;
+    this.scene.tweens.add({
+      targets: text,
+      y: y - 60,
+      duration: 500,
+      ease: 'Linear',
+      onComplete: () => text.destroy()
+    });
+  }
 
-		let tween = this.game.add.tween(text);
-		tween.to( { y: y-60 }, 500, "Linear", true);
-		tween.onComplete.add(function(){
-			text.destroy();
-		}, this);
-	}
+  takeDamage(knockForward = false) {
+    this.sounds.damage.play();
+    this.character.setTint(0xff0000);
+    this.isStunned = true;
+    this.character.body.velocity.x = knockForward ? 200 : -200;
+    this.character.body.velocity.y = -150;
 
-	takeDamage() {
-		this.sounds.damage.play();
+    this.scene.time.delayedCall(400, () => {
+      this.character.clearTint();
+      this.isStunned = false;
+    });
+  }
 
-		this.character.tint = 0xff0000;
-		this.isStunned = true;
-		this.character.body.velocity.x = -200;
-		this.character.body.velocity.y = -150;
+  die() {
+    this.sounds.damage.play();
+    this.character.anims.stop();
+    this.character.setFrame(4);
+  }
 
-		this.game.time.events.add(400, function() {
-			this.character.tint = 0xffffff;
-			this.isStunned = false;
-		}, this);
-	}
+  update(hitPlatform) {
+    if (this.isStunned) return;
 
-	die() {
-		this.sounds.damage.play();
-		 //  Stand still
-        this.character.animations.stop();
-        this.character.frame = 4;
-	}
+    this.character.body.velocity.x = -Settings.physics.platformSpeed;
+    this.character.body.setGravityY(Settings.physics.playerGravity);
 
-	update(hitPlatform) {
-		if (this.isStunned) return;
+    if (this.cursors.left.isDown) {
+      this.character.body.velocity.x = -Settings.physics.playerRunningBackwardSpeed - Settings.physics.platformSpeed;
+      this.character.anims.play('left', true);
+    } else if (this.cursors.right.isDown) {
+      this.character.body.velocity.x = Settings.physics.playerRunningForwardSpeed;
+      this.character.anims.play('right', true);
+    } else {
+      this.character.anims.stop();
+      this.character.setFrame(4);
+    }
 
- 		var cursors = this.game.input.keyboard.createCursorKeys();
+    if (this.cursors.down.isDown) {
+      this.character.body.setGravityY(Settings.physics.playerGravity + Settings.physics.extraGravity);
+    }
 
- 		 //  Reset the players velocity (movement)
-	    this.character.body.velocity.x = this.game.Settings.physics.playerStandingSpeed;
-	    this.character.body.gravity.y = this.game.Settings.physics.playerGravity;
-
-        //  Move to the left	
-	    if (cursors.left.isDown) {
-	        this.character.body.velocity.x = -this.game.Settings.physics.playerRunningBackwardSpeed;
-	        this.character.animations.play('left');
-	    }
-        //  Move to the right
-	    else if (cursors.right.isDown) {
-	        this.character.body.velocity.x = this.game.Settings.physics.playerRunningForwardSpeed + this.game.Settings.physics.platformSpeed;
-	        this.character.animations.play('right');
-	    }
-        //  Stand still
-	    else {
-	        this.character.animations.stop();
-	        this.character.frame = 4;
-	    }
-
-	    // Add more gravity if the down button is pressed
-	    if (cursors.down.isDown) {
-	        //  Move to the right
-	    	this.character.body.gravity.y = this.game.Settings.physics.playerGravity + this.game.Settings.physics.extraGravity;
-	    }
-
-	    //  Allow the player to jump if they are touching the ground.
-	    if (cursors.up.isDown && this.character.body.touching.down && hitPlatform) {
-	        this.sounds.jump.play();
-	        this.character.body.velocity.y = -this.game.Settings.physics.playerJumpVelocity;
-	    }
-	}
-
+    if (this.cursors.up.isDown && this.character.body.touching.down && hitPlatform) {
+      this.sounds.jump.play();
+      this.character.body.velocity.y = -Settings.physics.playerJumpVelocity;
+    }
+  }
 }
-
-export default Player;

@@ -1,35 +1,44 @@
-class SplashText {
+export default class SplashText {
 
-	constructor(game){
-		this.game = game;
-		this.timeOut = 2000;
-		this.timer = undefined;
-		this.splashText = undefined;
-		
-		return this;
-	}
+  constructor(scene) {
+    this.scene = scene;
+    this.timeOut = 2000;
+    this.timer = undefined;
+    this.splashText = undefined;
+  }
 
-	write(text) {
-		this.splashText = this.game.add.text(this.game.width/2, 100,text);
-	    this.splashText.anchor.set(0.5);
-	    this.splashText.align = 'center';
-	    this.splashText.font = 'arcade';
-	    this.splashText.fontSize = 30;
-	    this.splashText.fill = '#FFFFFF';
-		this.splashText.stroke = '#0b77a5';
-		this.splashText.strokeThickness = 6;
-		this.splashText.alpha = 0;
+  write(text) {
+    if (this.splashText) {
+      this.splashText.destroy();
+    }
 
-		this.game.add.tween(this.splashText).to( { alpha: 1 }, 500, "Linear", true);
-		this.game.add.tween(this.splashText).to( { fontSize: 50 }, 500, "Linear", true);
+    this.splashText = this.scene.add.text(this.scene.scale.width / 2, 100, text, {
+      fontFamily: 'arcade',
+      fontSize: '30px',
+      color: '#FFFFFF',
+      stroke: '#0b77a5',
+      strokeThickness: 6,
+      align: 'center'
+    }).setOrigin(0.5).setAlpha(0);
 
-		this.timer = this.game.time.events.loop(this.timeOut, this.destroySplashText, this);
-	}
+    this.scene.tweens.add({
+      targets: this.splashText,
+      alpha: 1,
+      scaleX: 1.6,
+      scaleY: 1.6,
+      duration: 500,
+      ease: 'Linear'
+    });
 
-	destroySplashText() {
-		this.splashText.destroy();
-		this.game.time.events.remove(this.timer);
-	}
+    this.timer = this.scene.time.delayedCall(this.timeOut, () => {
+      this.destroySplashText();
+    });
+  }
+
+  destroySplashText() {
+    if (this.splashText) {
+      this.splashText.destroy();
+      this.splashText = undefined;
+    }
+  }
 }
-
-export default SplashText;

@@ -1,113 +1,104 @@
-class Menu {
+import Phaser from 'phaser';
 
-	constructor(options, game){
-		this.game = game;
-		this.options = options;
-		this.drawnTexts = [];
+export default class Menu {
 
-		// Create an isActive property on each element
-		this.options.items.forEach(function(navItem,index){
-			navItem.isActive = false;
-		});
-		// Set the first menu as active
-		this.options.items[0].isActive = true;
+  constructor(options, scene) {
+    this.scene = scene;
+    this.options = options;
+    this.drawnTexts = [];
 
-		this.registerKeyhandler();
+    this.options.items.forEach(navItem => {
+      navItem.isActive = false;
+    });
+    this.options.items[0].isActive = true;
 
-		this.drawMenu();
-		return this;
-	}
+    this.registerKeyhandler();
+    this.drawMenu();
+  }
 
-	drawMenu() {
-		var navigationOffset = 250;
+  drawMenu() {
+    const navigationOffset = 250;
+    const w = this.scene.scale.width;
 
-		this.drawnTexts.forEach(function(navItem,index){
-			navItem.destroy();
-		},this);
+    this.drawnTexts.forEach(text => text.destroy());
+    this.drawnTexts = [];
 
-		if (this.options.title) {
-			let topOffset = navigationOffset - 40;
-			let text = this.game.add.text(this.game.width/2, topOffset,this.options.title);
-		    text.anchor.set(0.5);
-		    text.align = 'center';
-		    text.font = 'arcade';
-		    text.fontSize = 25;
-		    text.fill = '#FFFFFF';
-    		text.strokeThickness = 0;
+    if (this.options.title) {
+      const topOffset = navigationOffset - 40;
+      const text = this.scene.add.text(w / 2, topOffset, this.options.title, {
+        fontFamily: 'arcade',
+        fontSize: '25px',
+        color: '#FFFFFF',
+        align: 'center'
+      }).setOrigin(0.5);
+      this.drawnTexts.push(text);
+    }
 
-    		this.drawnTexts.push(text);
-		}
+    this.options.items.forEach((navItem, index) => {
+      const topOffset = navigationOffset + index * 40;
+      const text = this.scene.add.text(w / 2, topOffset, navItem.label, {
+        fontFamily: 'arcade',
+        fontSize: '50px',
+        color: '#FFFFFF',
+        stroke: '#504c39',
+        strokeThickness: navItem.isActive ? 6 : 0,
+        align: 'center'
+      }).setOrigin(0.5);
+      this.drawnTexts.push(text);
+    });
+  }
 
-		this.options.items.forEach(function(navItem,index){
-			let topOffset = navigationOffset + index*40;
-			let text = this.game.add.text(this.game.width/2, topOffset,navItem.label);
-		    text.anchor.set(0.5);
-		    text.align = 'center';
-		    text.font = 'arcade';
-		    text.fontSize = 50;
-		    text.fill = '#FFFFFF';
-		    text.stroke = '#504c39';
-    		text.strokeThickness = navItem.isActive ? 6 : 0;
+  getNextIndex() {
+    const activeIndex = this.getActiveIndex();
+    return (activeIndex === this.options.items.length - 1) ? 0 : activeIndex + 1;
+  }
 
-    		this.drawnTexts.push(text);
-		},this);
-	}
+  getPrevIndex() {
+    const activeIndex = this.getActiveIndex();
+    return activeIndex === 0 ? this.options.items.length - 1 : activeIndex - 1;
+  }
 
-	getNextIndex() {
-		let activeIndex = this.getActiveIndex();
-		return (activeIndex == this.options.items.length-1) ? 0 : activeIndex+1;
-	}
+  getActiveIndex() {
+    return this.options.items.findIndex(item => item.isActive);
+  }
 
-	getPrevIndex() {
-		let activeIndex = this.getActiveIndex();
-		return activeIndex == 0 ? this.options.items.length-1 : activeIndex-1;
-	}
+  getActiveMenu() {
+    const activeIndex = this.getActiveIndex();
+    return this.options.items[activeIndex];
+  }
 
-	getActiveIndex() {
-		return _.findIndex(this.options.items,{'isActive':true});
-	}
+  moveCursor(newIndex) {
+    const activeIndex = this.getActiveIndex();
+    if (this.options.items[activeIndex] === undefined || this.options.items[newIndex] === undefined) {
+      return;
+    }
+    this.options.items[activeIndex].isActive = false;
+    this.options.items[newIndex].isActive = true;
+  }
 
-	getActiveMenu() {
-		let activeIndex = this.getActiveIndex();
-		return _.isUndefined(this.options.items[activeIndex]) ? undefined : this.options.items[activeIndex];
-	}
+  registerKeyhandler() {
+    this._onKeyUp = (event) => {
+      if (event.keyCode === Phaser.Input.Keyboard.KeyCodes.UP) {
+        this.moveCursor(this.getPrevIndex());
+        this.drawMenu();
+      }
+      if (event.keyCode === Phaser.Input.Keyboard.KeyCodes.DOWN) {
+        this.moveCursor(this.getNextIndex());
+        this.drawMenu();
+      }
+      if (event.keyCode === Phaser.Input.Keyboard.KeyCodes.ENTER) {
+        const activeMenu = this.getActiveMenu();
+        if (activeMenu) {
+          activeMenu.callback();
+        }
+      }
+    };
+    this.scene.input.keyboard.on('keyup', this._onKeyUp);
+  }
 
-	moveCursor(newIndex) {
-		let activeIndex = this.getActiveIndex();
-		if (_.isUndefined(this.options.items[activeIndex]) || _.isUndefined(this.options.items[newIndex])) {
-			return;
-		}
-
-		this.options.items[activeIndex].isActive = false;
-		this.options.items[newIndex].isActive = true;
-	}
-
-	registerKeyhandler() {
-		this.game.input.keyboard.onUpCallback = _.bind(function(e){
-			if(e.keyCode == Phaser.Keyboard.UP) {
-	  			this.moveCursor(this.getPrevIndex());
-	    		this.drawMenu();
-			}
-			if(e.keyCode == Phaser.Keyboard.DOWN) {
-	  			this.moveCursor(this.getNextIndex());
-	    		this.drawMenu();
-			}
-			if(e.keyCode == Phaser.Keyboard.ENTER) {
-	    		let activeMenu = this.getActiveMenu();
-	    		if (activeMenu) {
-	    			activeMenu.callback();
-	    		}
-			}
-		},this);
-	}
-
-	destroy() {
-		this.game.input.keyboard.reset();
-		this.drawnTexts.forEach(function(navItem,index){
-			navItem.destroy();
-		});
-	}
-
+  destroy() {
+    this.scene.input.keyboard.off('keyup', this._onKeyUp);
+    this.drawnTexts.forEach(text => text.destroy());
+    this.drawnTexts = [];
+  }
 }
-
-export default Menu;

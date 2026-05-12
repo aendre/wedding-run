@@ -1,54 +1,68 @@
-class Enemy {
+import Phaser from 'phaser';
+import Settings from '../settings.js';
+import { resetSprite, killIfOutOfBounds } from '../utils/pool.js';
 
-	constructor(game){
-		this.game = game;
+export default class Enemy {
 
-		// Create a group for the platforms
-		this.enemies = this.game.add.group();
-	    this.enemies.enableBody = true;
-	    this.enemies.createMultiple(10, 'bunny');
-	    
-	    this.timer = game.time.events.loop(this.game.Settings.timers.enemySpawn, this.addBunny, this);
-	    return this;
-	}
+  constructor(scene) {
+    this.scene = scene;
 
-	getObject() {
- 		return this.enemies;
-	}
+    this.enemies = scene.physics.add.group({
+      allowGravity: false,
+      immovable: true
+    });
 
-	addBunny(){
- 		// Get a cloud that is not currently on screen
-	    let bunny = this.enemies.getFirstDead();
+    for (let i = 0; i < 10; i++) {
+      const bunny = this.enemies.create(0, 0, 'bunny');
+      bunny.setOrigin(0, 0);
+      bunny.setActive(false).setVisible(false);
+      bunny.body.stop();
+      bunny.body.enable = false;
+    }
 
-	 	if (bunny){
+    if (!scene.anims.exists('bunny-fly')) {
+      scene.anims.create({
+        key: 'bunny-fly',
+        frames: scene.anims.generateFrameNumbers('bunny', { start: 0, end: 4 }),
+        frameRate: 10,
+        repeat: -1
+      });
+    }
 
-	 		// Initial position of the bunny is outside of the game world
-		 	let x = this.game.width;
-	    	let y = this.game.world.height - this.game.rnd.between(2,6) * this.game.Settings.sizes.groundHeight;
+    this.timer = scene.time.addEvent({
+      delay: Settings.timers.enemySpawn,
+      callback: this.addBunny,
+      callbackScope: this,
+      loop: true
+    });
+  }
 
-		    //Reset it to the specified coordinates
-		    bunny.reset(x, y);
-		   
-	    	bunny.animations.add('fly', [0, 1, 2, 3, 4], 10, true);
-	    	bunny.animations.play('fly');
-	    	bunny.body.immovable = true;
-	    	bunny.body.allowGravity = false;
-	    	bunny.body.velocity.x = - this.game.rnd.between(1,4) * this.game.Settings.physics.platformSpeed - 35;
+  getObject() {
+    return this.enemies;
+  }
 
-	    	 // Set a narrower bounding box for the bunny than the image itself
-	    	let bunnyImage = this.game.cache.getImage('bunny');
-	    	bunny.body.setSize(25, bunnyImage.height-8, 3, 4);
- 
-		    //When the bunny leaves the screen, kill it
-		    bunny.checkWorldBounds = true;
-		    bunny.outOfBoundsKill = true;
-	 	}
-	}
+  addBunny() {
+    const bunny = this.enemies.getFirstDead(false);
+    if (!bunny) return;
 
-	update() {
- 		
-	}
+    const x = this.scene.scale.width;
+    const y = this.scene.scale.height - Phaser.Math.Between(2, 6) * Settings.sizes.groundHeight;
 
+    bunny.setOrigin(0, 0);
+    resetSprite(bunny, x, y);
+    bunny.anims.play('bunny-fly', true);
+    bunny.body.setImmovable(true);
+    bunny.body.setAllowGravity(false);
+    bunny.body.setVelocityX(-Phaser.Math.Between(1, 4) * Settings.physics.platformSpeed - 35);
+
+    const bunnyImage = this.scene.textures.get('bunny').getSourceImage();
+    bunny.body.setSize(25, bunnyImage.height - 8);
+    bunny.body.setOffset(3, 4);
+  }
+
+  update() {
+    this.enemies.getChildren().forEach(bunny => {
+      killIfOutOfBounds(bunny);
+    });
+  }
 }
-
-export default Enemy;

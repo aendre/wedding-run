@@ -1,33 +1,23 @@
-import _ from 'lodash';
-window._ = _;
+import Phaser from 'phaser';
+import Settings from './settings.js';
+import Preload from 'scenes/Preload';
+import MainMenu from 'scenes/MainMenu';
+import Credits from 'scenes/Credits';
+import HighScores from 'scenes/HighScores';
+import Main from 'scenes/Main';
 
-import Preload from 'states/Preload';
-import MainMenu from 'states/MainMenu';
-import Credits from 'states/Credits';
-import HighScores from 'states/HighScores';
-import Main from 'states/Main';
-import Settings from './settings';
+const config = {
+  type: Phaser.AUTO,
+  width: Settings.canvasWidth,
+  height: Settings.canvasHeight,
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 0 },
+      debug: false
+    }
+  },
+  scene: [Preload, MainMenu, Credits, HighScores, Main]
+};
 
-class Game extends Phaser.Game {
-
-	constructor() {		
-		// Width, height of the game, AUTO = Detect canvas or webGL
-		super(Settings.canvasWidth, Settings.canvasHeight, Phaser.AUTO);
-		
-		// Store game settings
-		this.Settings = Settings;
-
-		// Define game states
-		this.state.add('Preload', Preload, false);
-		this.state.add('MainMenu', MainMenu, false);
-		this.state.add('Credits', Credits, false);
-		this.state.add('HighScores', HighScores, false);
-		this.state.add('Main', Main, false);
-
-		// Start the preload state
-		this.state.start('Preload');		
-	}
-
-}
-
-new Game();
+new Phaser.Game(config);
